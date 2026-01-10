@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integers with Nugget 3</title>
+    <meta name="description" content="Interactive worksheet: Multiplying and Dividing Integers.">
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        h1, h2 { color: #333; margin-bottom: 5px; text-align: center; }
+        p.subtitle { color: #666; margin-top: 0; margin-bottom: 20px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        /* PROGRESS BAR */
+        .progress-wrapper { display: flex; width: 100%; max-width: 800px; margin-bottom: 15px; height: 30px; background-color: #e9ecef; border-radius: 15px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+        .progress-segment { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: #aaa; background-color: #e9ecef; transition: all 0.3s ease; cursor: pointer; border-right: 1px solid #ddd; }
+        .progress-segment:last-child { border-right: none; }
+        .progress-segment.active { background-color: #8e44ad; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); } 
+        .progress-segment.done { background-color: #27ae60; color: white; }
+
+        /* CONTROL BUTTONS */
+        .control-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .control-btn { padding: 8px 16px; border: 1px solid #ccc; background: white; border-radius: 20px; cursor: pointer; font-size: 14px; font-weight: 500; color: #555; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 140px; }
+        .control-btn:hover { background: #f8f9fa; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .control-btn.help-btn { border-color: #8e44ad; color: #8e44ad; }
+        .control-btn.confirming { border-color: #c0392b; color: #c0392b; background: #fff0f0; }
+
+        /* SECTIONS */
+        .game-section { display: none; width: 100%; max-width: 800px; flex-direction: column; gap: 20px; animation: fadeIn 0.5s; padding-bottom: 40px; }
+        .game-section.active { display: flex; }
+
+        /* CARDS */
+        .question-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; margin-bottom: 20px; }
+        
+        /* NUMBER LINE ANIMATION CONTAINER */
+        .nl-anim-container { width: 100%; height: 180px; position: relative; overflow: visible; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+        
+        .nugget-sprite { 
+            position: absolute; 
+            width: 50px; 
+            height: auto; 
+            bottom: 52px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            z-index: 10;
+        }
+
+        /* Target Marker (Part 4) - UPDATED COLOR & POSITION */
+        .target-marker {
+            position: absolute;
+            bottom: 60px;
+            width: 2px;
+            height: 40px;
+            background-color: #3498db; /* Blue */
+            z-index: 5;
+            display: none;
+        }
+        .target-label {
+            position: absolute;
+            bottom: 125px; /* Moved higher */
+            transform: translateX(-50%);
+            background: #3498db; /* Blue */
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+            z-index: 5;
+        }
+        
+        /* Animation Comment (Part 4) */
+        .anim-comment {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ccc;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            color: #555;
+            font-weight: bold;
+            display: none;
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Hop Animations */
+        .hopping-fwd { animation: hopFwd 0.5s ease-in-out; }
+        .hopping-back { animation: hopBack 0.5s ease-in-out; }
+        
+        @keyframes hopFwd {
+            0% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            50% { transform: translateX(-50%) translateY(-25px) rotate(5deg); } 
+            100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+        }
+        @keyframes hopBack {
+            0% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+            50% { transform: translateX(-50%) translateY(-25px) rotate(-5deg); } 
+            100% { transform: translateX(-50%) translateY(0) rotate(0deg); }
+        }
+
+        /* MATH DISPLAY */
+        .math-row { font-size: 28px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .operator-box { display: inline-block; padding: 0 5px; color: #000; }
+        
+        /* COLOR CODING */
+        .num-mult1 { color: #333; } 
+        .num-target { color: #3498db; } /* New Blue for Division Target */
+        .num-mult2-pos { color: #27ae60; } 
+        .num-mult2-neg { color: #c0392b; } 
+
+        /* INPUT STYLING */
+        input[type="number"] { 
+            width: 80px; padding: 8px; text-align: center; font-size: 24px; border: 2px solid #ddd; border-radius: 8px; outline: none; transition: 0.2s; 
+            -moz-appearance: textfield; 
+        }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input.correct { background-color: #d4edda; border-color: #28a745; color: #155724; }
+        input.incorrect { background-color: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        /* NAV BTN */
+        .nav-btn { 
+            margin-top: 10px; padding: 12px 30px; font-size: 18px; background-color: #8e44ad; color: white; border: none; border-radius: 25px; cursor: pointer; transition: transform 0.2s, background 0.2s; align-self: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+            display: none; 
+        }
+        .nav-btn:hover { background-color: #732d91; transform: translateY(-2px); }
+
+        /* HELP MODAL & TABLE */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 15px; text-align: center; max-width: 650px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #999; }
+        
+        /* MATRIX TABLE STYLING */
+        .matrix-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 16px; }
+        .matrix-table td, .matrix-table th { border: 2px solid #fff; padding: 15px; text-align: center; width: 33%; }
+        
+        /* Headers */
+        .matrix-header-col { background-color: #eee; font-weight: bold; color: #555; }
+        .matrix-header-row { background-color: #eee; font-weight: bold; color: #555; text-align: right; padding-right: 15px; }
+        .matrix-empty { background: transparent; border: none !important; }
+
+        /* Result Cells */
+        .res-pos { background-color: #d4edda; color: #155724; font-weight: bold; font-size: 18px; }
+        .res-neg { background-color: #f8d7da; color: #721c24; font-weight: bold; font-size: 18px; }
+
+        .pos-word { color: #27ae60; font-weight: bold; } /* Green */
+        .neg-word { color: #c0392b; font-weight: bold; } /* Red */
+        
+        .help-grid { display: flex; gap: 20px; align-items: flex-start; text-align: left; margin-top: 10px; }
+        .help-nugget { width: 80px; text-align: center; flex-shrink: 0; }
+        .help-nugget img { width: 100%; border-radius: 50%; border: 3px solid #eee; }
+        .help-text { flex: 1; font-size: 16px; color: #444; line-height: 1.5; }
+
+        /* CERTIFICATE */
+        .cert-view { 
+            display: none; width: 700px; max-width: 95%; padding: 20px 40px; 
+            background: #fdf2e9; border: 8px double #8e44ad; 
+            text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin: 10px auto; 
+        }
+        .cert-nugget-img { width: 90px; height: 110px; object-fit: cover; border-radius: 50%; border: 5px solid #8e44ad; background: white; }
+        .cert-footer { margin-top: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <h1>Integers with Nugget 3</h1>
+    <p class="subtitle">Multiplication and Division. Watch which way Nugget faces!</p>
+
+    <div class="progress-wrapper">
+        <div id="prog1" class="progress-segment active" onclick="if(this.classList.contains('done')) nextPart(1)">1. Pos × Int</div>
+        <div id="prog2" class="progress-segment" onclick="if(this.classList.contains('done')) nextPart(2)">2. Neg × Int</div>
+        <div id="prog3" class="progress-segment" onclick="if(this.classList.contains('done')) nextPart(3)">3. Mixed</div>
+        <div id="prog4" class="progress-segment" onclick="if(this.classList.contains('done')) nextPart(4)">4. Division</div>
+    </div>
+
+    <div class="control-bar">
+        <button class="control-btn help-btn" onclick="openHelp()">How do I do this? Ask Nugget! 🐹</button>
+        <button id="btnReset" class="control-btn" onclick="confirmAction('btnReset', 'Reset Answers', resetCurrentPart)">Reset Answers</button>
+        <button id="btnFresh" class="control-btn" onclick="confirmAction('btnFresh', 'Fresh Numbers', freshNumbers)">Fresh Numbers</button>
+    </div>
+
+    <div id="game-container">
+        
+        <div id="part1" class="game-section active">
+            <h2 style="font-size: 18px; color: #8e44ad;">Part 1: Positive × Integer</h2>
+            <p style="text-align:center; color:#666; font-size:14px;">The first number is positive. Nugget faces <strong>right</strong>.</p>
+            <div id="part1-questions"></div>
+            <button id="btnPart1" class="nav-btn" onclick="nextPart(2)">Great! Go to Part 2</button>
+        </div>
+
+        <div id="part2" class="game-section">
+            <h2 style="font-size: 18px; color: #8e44ad;">Part 2: Negative × Integer</h2>
+            <p style="text-align:center; color:#666; font-size:14px;">The first number is negative. Nugget turns to face <strong>left</strong>!</p>
+            <div id="part2-questions"></div>
+            <button id="btnPart2" class="nav-btn" onclick="nextPart(3)">Awesome! Go to Part 3 (Mixed)</button>
+        </div>
+
+        <div id="part3" class="game-section">
+            <h2 style="font-size: 18px; color: #8e44ad;">Part 3: Mixed Multiplication</h2>
+            <p style="text-align:center; color:#666; font-size:14px;">Check the first number to see which way Nugget faces!</p>
+            <div id="part3-questions"></div>
+            <button id="btnPart3" class="nav-btn" onclick="nextPart(4)">Go to Part 4 (Division)</button>
+        </div>
+
+        <div id="part4" class="game-section">
+            <h2 style="font-size: 18px; color: #8e44ad;">Part 4: Division</h2>
+            <p style="text-align:center; color:#666; font-size:14px;">Nugget hops with a step size of <strong>[Divisor]</strong>. He needs to reach <strong>[Total]</strong>.<br>Which way must he face and how many hops?</p>
+            <div id="part4-questions"></div>
+            <button id="btnPart4" class="nav-btn" onclick="openCertificateModal()">You Mastered It! Get Certificate</button>
+        </div>
+
+    </div>
+
+    <div id="helpModal" class="modal-overlay" onclick="if(event.target===this) closeHelp()">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeHelp()">&times;</span>
+            <h2 style="text-align: left; margin-top:0;">Nugget's Guide</h2>
+            
+            <div class="help-grid">
+                <div class="help-nugget">
+                    <img src="Nugget.png" alt="Nugget">
+                </div>
+                <div class="help-text" id="help-text-content"></div>
+            </div>
+
+            <div id="summary-table-container" style="display:none;">
+                <p style="text-align: left; margin: 15px 0 5px 0; font-size: 15px; color: #444; background: #f9f9f9; padding: 10px; border-left: 4px solid #8e44ad;">
+                    <strong>Remember the rules:</strong><br>
+                    • If 1st Number is <strong>positive</strong>, face <strong>right</strong>.<br>
+                    • If 1st Number is <strong>negative</strong>, face <strong>left</strong>.<br>
+                    • Then hop <strong>forward</strong> (for positive) or <strong>backward</strong> (for negative).
+                </p>
+                
+                <p style="margin-top:10px; font-weight:bold; margin-bottom:5px;">Sign Summary Table</p>
+                <table class="matrix-table">
+                    <tr>
+                        <td class="matrix-empty"></td>
+                        <td class="matrix-header-col">2nd No. <span class="pos-word">(+)</span></td>
+                        <td class="matrix-header-col">2nd No. <span class="neg-word">(-)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-header-row">1st No. <span class="pos-word">(+)</span></td>
+                        <td class="res-pos">Positive</td>
+                        <td class="res-neg">Negative</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-header-row">1st No. <span class="neg-word">(-)</span></td>
+                        <td class="res-neg">Negative</td>
+                        <td class="res-pos">Positive</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="certModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Multiplication Master!</h2>
+            <p>You can multiply and divide integers like a pro.</p>
+            <p>Enter your name:</p>
+            <input type="text" id="nameInput" placeholder="Your Name" style="width: 80%; margin-bottom: 20px;">
+            <br>
+            <button class="nav-btn" style="display:inline-block;" onclick="generateCertificate()">Get Certificate</button>
+        </div>
+    </div>
+
+    <div id="certificate-view" class="cert-view">
+        <h1 style="font-family: 'Georgia', serif; font-size: 36px; color: #2c3e50; margin-bottom: 5px;">Certificate of Achievement</h1>
+        <p style="font-size: 18px; color: #555;">This certifies that</p>
+        <div id="display-name" style="font-size: 32px; color: #8e44ad; font-weight: bold; margin: 10px 0; border-bottom: 2px solid #ccc; display: inline-block; padding: 0 20px; min-width: 200px;">Student Name</div>
+        <p style="font-size: 18px; color: #555;">has mastered Integer Multiplication & Division</p>
+        
+        <div style="display: flex; align-items: center; justify-content: center; gap: 30px; margin: 15px 0;">
+            <img src="Nugget.png" class="cert-nugget-img">
+            <div style="text-align: left;">
+                <h2 style="color: #8e44ad; margin: 0; font-size: 24px;">Integer Expert</h2>
+                <p style="margin: 5px 0; font-size: 14px; color: #666;">Facing & Hopping • Sign Rules</p>
+            </div>
+        </div>
+
+        <div class="cert-footer">
+            <div style="text-align: left;">
+                <div id="display-time" style="font-size: 12px; color: #999;"></div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-family: 'Brush Script MT', cursive; font-size: 24px; color: #333;">Nugget <span style="font-size: 30px; opacity: 0.6;">🐾</span></div>
+                <div style="border-top: 1px solid #333; width: 120px; margin-top: 2px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPart = 1;
+        let confirmTimers = {};
+        const isAnimating = {}; 
+        const animationPlayed = {}; 
+
+        /* --- VISUALIZATION CONSTANTS --- */
+        const LINE_MIN = -12; 
+        const LINE_MAX = 12;
+        
+        function getLeftPercent(val) {
+            return ((val + 12) / 24) * 100;
+        }
+
+        /* --- QUESTION GENERATOR --- */
+        function createQuestionCard(id, num1, op, num2) {
+            let result;
+            if (op === '×') result = num1 * num2;
+            else result = num1 / num2;
+
+            const val1Display = num1 < 0 ? `(${num1})` : num1; 
+            const val2Display = num2 < 0 ? `(${num2})` : num2;
+            
+            // Color Class Logic
+            let colorClass1 = "num-mult1"; // Default black
+            let colorClass2 = "num-mult1";
+
+            if (op === '×') {
+                 // Multiplication: n2 determines step color
+                 colorClass2 = (num2 >= 0) ? "num-mult2-pos" : "num-mult2-neg";
+            } else {
+                 // Division: n1 is Target (Blue), n2 is Step Size (Green/Red)
+                 colorClass1 = "num-target";
+                 colorClass2 = (num2 >= 0) ? "num-mult2-pos" : "num-mult2-neg";
+            }
+
+            // Build SVG
+            let svg = `<svg id="svg_${id}" width="100%" height="100%" viewBox="0 0 800 160">
+                <line x1="20" y1="120" x2="780" y2="120" stroke="#333" stroke-width="2" />
+                <polygon points="780,115 790,120 780,125" fill="#333" />
+                <polygon points="20,115 10,120 20,125" fill="#333" />
+                <g id="arrows_${id}"></g>`; 
+            
+            // Ticks (Range -12 to 12)
+            for(let i=LINE_MIN; i<=LINE_MAX; i++) {
+                const x = 400 + (i * 31.6);
+                svg += `<line x1="${x}" y1="115" x2="${x}" y2="125" stroke="#333" stroke-width="2" />`;
+                if(Math.abs(i) % 2 === 0 || Math.abs(i) <= 3) {
+                     svg += `<text x="${x}" y="145" text-anchor="middle" font-size="12" fill="#666" font-family="sans-serif">${i}</text>`;
+                }
+            }
+            svg += `</svg>`;
+
+            return `
+            <div class="question-card" id="qcard_${id}">
+                <div class="math-row">
+                    <span class="${colorClass1}">${val1Display}</span>
+                    <span class="operator-box">${op}</span>
+                    <span class="num-hop ${colorClass2}">${val2Display}</span>
+                    <span>=</span>
+                    <input type="number" onchange="checkAnswer(this, ${result}, '${id}', ${num1}, '${op}', ${num2})">
+                </div>
+                
+                <div class="nl-anim-container">
+                    ${svg}
+                    <div id="target_${id}" class="target-marker"></div>
+                    <div id="target_label_${id}" class="target-label">TARGET</div>
+                    <div id="comment_${id}" class="anim-comment"></div>
+                    <img src="Nugget_Right.png" id="nugget_${id}" class="nugget-sprite" style="left: ${getLeftPercent(0)}%;">
+                </div>
+            </div>
+            `;
+        }
+
+        /* --- ANIMATION LOGIC --- */
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        function drawArc(id, startVal, endVal, color) {
+            const svgGroup = document.getElementById(`arrows_${id}`);
+            const startX = 400 + (startVal * 31.6);
+            const endX = 400 + (endVal * 31.6);
+            const midX = (startX + endX) / 2;
+            const h = 40; 
+            
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${startX} 115 Q ${midX} ${115 - h} ${endX} 115`);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", color);
+            path.setAttribute("stroke-width", "3");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("class", "fade-in-arrow");
+            svgGroup.appendChild(path);
+        }
+
+        async function playAnimation(id, n1, op, n2) {
+            if(isAnimating[id]) return; 
+            isAnimating[id] = true;
+
+            const img = document.getElementById(`nugget_${id}`);
+            const arrows = document.getElementById(`arrows_${id}`);
+            const targetMarker = document.getElementById(`target_${id}`);
+            const targetLabel = document.getElementById(`target_label_${id}`);
+            const comment = document.getElementById(`comment_${id}`);
+            
+            arrows.innerHTML = ''; 
+            targetMarker.style.display = 'none';
+            targetLabel.style.display = 'none';
+            comment.style.display = 'none';
+
+            let repetitions, isFacingRight, stepValue, hopSize, movementDelta, color;
+            let commentText = "";
+
+            if (op === '×') {
+                // MULTIPLICATION LOGIC
+                repetitions = Math.abs(n1);
+                isFacingRight = (n1 >= 0);
+                stepValue = n2;
+                hopSize = Math.abs(n2);
+                color = (n2 >= 0) ? "#27ae60" : "#c0392b";
+                
+                if (isFacingRight) {
+                    movementDelta = (n2 >= 0) ? hopSize : -hopSize;
+                } else {
+                    movementDelta = (n2 >= 0) ? -hopSize : hopSize;
+                }
+            } else {
+                // DIVISION LOGIC
+                // Show Target Marker
+                targetMarker.style.left = getLeftPercent(n1) + '%';
+                targetLabel.style.left = getLeftPercent(n1) + '%';
+                targetMarker.style.display = 'block';
+                targetLabel.style.display = 'block';
+                
+                // Add delay to see target
+                await wait(800);
+
+                let answer = n1 / n2;
+                repetitions = Math.abs(answer);
+                isFacingRight = (answer >= 0);
+                hopSize = Math.abs(n2);
+                color = (n2 >= 0) ? "#27ae60" : "#c0392b"; 
+
+                if (isFacingRight) {
+                     movementDelta = (n2 >= 0) ? hopSize : -hopSize;
+                } else {
+                     movementDelta = (n2 >= 0) ? -hopSize : hopSize;
+                }
+                
+                let faceStr = isFacingRight ? "right" : "left";
+                commentText = `${repetitions} hops facing ${faceStr}`;
+            }
+
+            // RESET
+            img.style.transition = 'none';
+            img.style.left = getLeftPercent(0) + '%';
+            
+            // SET FACE & DELAY
+            if(!isFacingRight) {
+                img.src = 'Nugget_Left.png';
+                await wait(600); 
+            } else {
+                img.src = 'Nugget_Right.png';
+                await wait(100);
+            }
+
+            // HOP LOOP
+            let currentPos = 0;
+            
+            for(let i=0; i<repetitions; i++) {
+                let nextPos = currentPos + movementDelta;
+                
+                // Draw Arrow
+                drawArc(id, currentPos, nextPos, color);
+
+                // Show Comment if Division
+                if (op === '÷' && i === 0) {
+                    comment.innerText = commentText;
+                    comment.style.display = 'block';
+                }
+
+                // Animate Sprite
+                let movingRight = (movementDelta > 0);
+                let isForwardAnim = (isFacingRight && movingRight) || (!isFacingRight && !movingRight);
+
+                img.classList.add(isForwardAnim ? 'hopping-fwd' : 'hopping-back');
+                img.style.transition = 'left 0.5s ease-in-out';
+                img.style.left = getLeftPercent(nextPos) + '%';
+                
+                await wait(500);
+                img.classList.remove('hopping-fwd');
+                img.classList.remove('hopping-back');
+                await wait(100);
+                
+                currentPos = nextPos;
+            }
+
+            isAnimating[id] = false;
+        }
+
+        function checkAnswer(input, correctVal, id, n1, op, n2) {
+            if (!animationPlayed[id]) {
+                playAnimation(id, n1, op, n2);
+                animationPlayed[id] = true;
+            }
+
+            if(Number(input.value) === correctVal) {
+                input.className = 'correct';
+            } else {
+                input.className = 'incorrect';
+            }
+            
+            const sectionId = input.closest('.game-section').id;
+            const btnId = 'btn' + sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
+            
+            const inputs = document.getElementById(sectionId).querySelectorAll('input');
+            const allCorrect = Array.from(inputs).every(i => i.classList.contains('correct'));
+            
+            document.getElementById(btnId).style.display = allCorrect ? 'block' : 'none';
+        }
+
+        /* --- GENERATORS --- */
+        function getRandomInt(min, max) { 
+            let val = Math.floor(Math.random() * (max - min + 1)) + min; 
+            return val; 
+        }
+        
+        function getNonZeroRandomInt(min, max) {
+            let val = getRandomInt(min, max);
+            return val === 0 ? 1 : val;
+        }
+
+        function generatePart1() { // POSITIVE MULTIPLIER (Faces Right)
+            let html = ``;
+            for(let i=0; i<10; i++) {
+                let n1 = getNonZeroRandomInt(2, 5); 
+                let n2;
+                if (i === 5) { n2 = 0; } 
+                else {
+                    let isNeg = Math.random() < 0.7; 
+                    if(isNeg) n2 = getNonZeroRandomInt(-4, -1);
+                    else n2 = getNonZeroRandomInt(1, 4);
+                }
+                while (Math.abs(n1 * n2) > 12) {
+                    if(n2 < 0) n2 = getNonZeroRandomInt(-3, -1);
+                    else n2 = getNonZeroRandomInt(1, 3);
+                }
+                html += createQuestionCard(`p1_${i}`, n1, '×', n2);
+            }
+            document.getElementById('part1-questions').innerHTML = html;
+        }
+
+        function generatePart2() { // NEGATIVE MULTIPLIER (Faces Left)
+            let html = ``;
+            for(let i=0; i<10; i++) {
+                let n1 = getNonZeroRandomInt(-5, -2);
+                let n2;
+                if (i === 5) { n2 = 0; } 
+                else {
+                    let isNeg = Math.random() < 0.5; 
+                    if(isNeg) n2 = getNonZeroRandomInt(-4, -1);
+                    else n2 = getNonZeroRandomInt(1, 4);
+                }
+                while (Math.abs(n1 * n2) > 12) {
+                     if(n2 < 0) n2 = getNonZeroRandomInt(-3, -1);
+                     else n2 = getNonZeroRandomInt(1, 3);
+                }
+                html += createQuestionCard(`p2_${i}`, n1, '×', n2);
+            }
+            document.getElementById('part2-questions').innerHTML = html;
+        }
+
+        function generatePart3() { // MIXED + FORCED PAIRS
+            let html = ``;
+            let pairA_val1 = getNonZeroRandomInt(2, 3);
+            let pairA_val2 = getNonZeroRandomInt(2, 3);
+            let pairB_val1 = getNonZeroRandomInt(2, 3);
+            let pairB_val2 = getNonZeroRandomInt(2, 3);
+
+            for(let i=0; i<10; i++) {
+                let n1, n2;
+                if (i === 2) { n1 = pairA_val1; n2 = -pairA_val2; } 
+                else if (i === 3) { n1 = -pairA_val1; n2 = pairA_val2; } 
+                else if (i === 4) { n1 = pairB_val1; n2 = pairB_val2; } 
+                else if (i === 5) { n1 = -pairB_val1; n2 = -pairB_val2; } 
+                else {
+                    n1 = getRandomInt(-4, 4);
+                    if(n1===0) n1=2;
+                    n2 = getRandomInt(-4, 4);
+                    while(Math.abs(n1*n2)>12) n2 = getRandomInt(-2,2);
+                }
+                html += createQuestionCard(`p3_${i}`, n1, '×', n2);
+            }
+            document.getElementById('part3-questions').innerHTML = html;
+        }
+
+        function generatePart4() { // DIVISION
+            let html = ``;
+            for(let i=0; i<10; i++) {
+                let n2 = getRandomInt(-4, 4);
+                if(n2===0) n2=2;
+                let ans = getRandomInt(-4, 4);
+                if(ans===0) ans=2;
+                
+                while (Math.abs(n2 * ans) > 12) {
+                    ans = getRandomInt(-3, 3);
+                    if(ans === 0) ans = 1;
+                }
+                let n1 = n2 * ans;
+                html += createQuestionCard(`p4_${i}`, n1, '÷', n2);
+            }
+            document.getElementById('part4-questions').innerHTML = html;
+        }
+
+        /* --- HELPERS --- */
+        function openHelp() { 
+            const helpText = document.getElementById('help-text-content');
+            const tableContainer = document.getElementById('summary-table-container');
+
+            if(currentPart === 1) {
+                helpText.innerHTML = `<b>Part 1: Positive × Integer</b><br>
+                1. The first number is <strong>positive</strong>. Nugget faces <strong>right</strong>.<br>
+                2. Look at the second number (the hop):<br>
+                • <span class="pos-word">positive</span>: Hop <strong>forward</strong>.<br>
+                • <span class="neg-word">negative</span>: Hop <strong>backward</strong>.`;
+                tableContainer.style.display = 'none';
+            } 
+            else if(currentPart === 2) {
+                helpText.innerHTML = `<b>Part 2: Negative × Integer</b><br>
+                1. The first number is <strong>negative</strong>. Nugget faces <strong>left</strong>.<br>
+                2. Look at the second number (the hop):<br>
+                • <span class="pos-word">positive</span>: Hop <strong>forward</strong>.<br>
+                • <span class="neg-word">negative</span>: Hop <strong>backward</strong>.`;
+                tableContainer.style.display = 'none';
+            }
+            else if(currentPart === 3) {
+                 helpText.innerHTML = `<b>Part 3: Mixed Multiplication</b><br>
+                 Remember: the first number tells you which way to face (<span class="pos-word">plus</span>=<strong>right</strong>, <span class="neg-word">minus</span>=<strong>left</strong>). Then look at the second number to see if you hop <span class="pos-word">forward</span> or <span class="neg-word">backward</span>.<br><br>
+                 Use the Summary Table below to check the final sign.`;
+                 tableContainer.style.display = 'block';
+            }
+            else {
+                helpText.innerHTML = `<b>Part 4: Division</b><br>
+                Nugget wants to reach the <strong>target</strong> (the first number).<br>
+                • If he hops <strong>forward</strong> but needs to reach the <span class="neg-word">negative</span> side, he must face <strong>left</strong>.<br>
+                • If he hops <strong>backward</strong> but needs to reach the <span class="pos-word">positive</span> side, he must face <strong>left</strong>.<br>
+                Basically: He must face the direction that allows his hops to get to the target!<br><br>
+                The same Summary Table applies for division.`;
+                tableContainer.style.display = 'block';
+            }
+
+            document.getElementById('helpModal').style.display = 'flex'; 
+        }
+
+        function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+        
+        function confirmAction(btnId, originalText, actionFunc) {
+            const btn = document.getElementById(btnId);
+            if (btn.classList.contains('confirming')) {
+                actionFunc();
+                clearTimeout(confirmTimers[btnId]);
+                btn.innerText = originalText;
+                btn.classList.remove('confirming');
+            } else {
+                btn.innerText = "Click again to confirm";
+                btn.classList.add('confirming');
+                if(confirmTimers[btnId]) clearTimeout(confirmTimers[btnId]);
+                confirmTimers[btnId] = setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('confirming');
+                }, 3000); 
+            }
+        }
+
+        function resetCurrentPart() {
+            const container = document.getElementById(`part${currentPart}-questions`);
+            container.querySelectorAll('input').forEach(i => { i.value = ''; i.className = ''; });
+            container.querySelectorAll('.nugget-sprite').forEach(img => {
+                 img.style.left = getLeftPercent(0) + '%'; 
+                 img.src = 'Nugget_Right.png'; 
+            });
+            container.querySelectorAll('g[id^="arrows_"]').forEach(g => g.innerHTML = '');
+            container.querySelectorAll('.target-marker, .target-label, .anim-comment').forEach(el => el.style.display = 'none');
+            Object.keys(animationPlayed).forEach(key => delete animationPlayed[key]);
+            document.getElementById(`btnPart${currentPart}`).style.display = 'none';
+        }
+
+        function freshNumbers() {
+            if(currentPart === 1) generatePart1();
+            if(currentPart === 2) generatePart2();
+            if(currentPart === 3) generatePart3();
+            if(currentPart === 4) generatePart4();
+            Object.keys(animationPlayed).forEach(key => delete animationPlayed[key]);
+            document.getElementById(`btnPart${currentPart}`).style.display = 'none';
+        }
+
+        function nextPart(n) {
+            document.querySelectorAll('.game-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.progress-segment').forEach(el => el.classList.remove('active'));
+            currentPart = n;
+            document.getElementById(`part${n}`).classList.add('active');
+            document.getElementById(`prog${n}`).classList.add('active');
+            for(let i=1; i<n; i++) document.getElementById(`prog${i}`).className = 'progress-segment done';
+            window.scrollTo(0,0);
+        }
+
+        function openCertificateModal() { document.getElementById('certModal').style.display = 'flex'; }
+        function generateCertificate() {
+            const name = document.getElementById('nameInput').value.trim();
+            if(!name) { alert("Please enter your name."); return; }
+            document.getElementById('display-name').innerText = name;
+            document.getElementById('display-time').innerText = new Date().toLocaleString();
+            document.getElementById('certModal').style.display = 'none';
+            document.getElementById('game-container').style.display = 'none';
+            document.querySelector('.progress-wrapper').style.display = 'none';
+            document.querySelector('.control-bar').style.display = 'none';
+            document.querySelector('.subtitle').style.display = 'none';
+            document.querySelector('h1').innerText = "Congratulations!";
+            document.getElementById('certificate-view').style.display = 'block';
+        }
+
+        window.onload = function() {
+            generatePart1();
+            generatePart2();
+            generatePart3();
+            generatePart4();
+        };
+    </script>
+</body>
+</html>
